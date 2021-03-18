@@ -122,8 +122,9 @@ void remove_from_buffer() {
 void append_newline_to_buffer() {
 	for(int i = 0; i < file_size; i ++) {
 		if(buffer[i] == 0) {
+			if(buffer[i - 1] == '\n') return;
 			buffer[i] = '\n';
-			break;
+			return;
 		}
 	}
 }
