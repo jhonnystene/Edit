@@ -27,9 +27,10 @@ void text_selected() {attron(COLOR_PAIR(3));}
 void text_error()    {attron(COLOR_PAIR(3));}
 
 // Defines
-#define BUFFER_SIZE 65536
+#define DEFAULT_BUFFER_SIZE 65536
 
 // Global data
+long file_size = DEFAULT_BUFFER_SIZE;
 char* buffer;
 
 int top_row = 0; // Which row is at the top?
@@ -74,7 +75,7 @@ void redraw() {
 
 	int cursor_x = 0;
 	int cursor_y = 0;
-	for(int i = 0; i < BUFFER_SIZE; i++) {
+	for(int i = 0; i < file_size; i++) {
 		if(i == current_position) {
 			cursor_x = local_col + 2;
 			cursor_y = local_row + 2;
@@ -99,7 +100,7 @@ void redraw() {
 }
 
 void add_to_buffer(char ch) {
-	for(int i = BUFFER_SIZE - 1; i > current_position - 1; i--) {
+	for(int i = file_size - 1; i > current_position - 1; i--) {
 		buffer[i] = buffer[i - 1];
 	}
 	buffer[current_position] = ch;
@@ -108,16 +109,32 @@ void add_to_buffer(char ch) {
 
 void remove_from_buffer() {
 	if(current_position == 0) return;
-	for(int i = current_position - 1; i < BUFFER_SIZE; i++) {
+	for(int i = current_position - 1; i < file_size; i++) {
 		buffer[i] = buffer[i + 1];
 		if(buffer[i + 1] == 0) break; // Don't waste time removing things after we hit EOF
 	}
 	current_position --;
 }
 
-int main(int argc, char** argv) {
-	// Init global buffer with 64 KiB of space
-	buffer = (char*) malloc(BUFFER_SIZE * sizeof(char));
+int main(int argc, char* argv[]) {
+	if(argc < 2) {
+		printf("Usage: edit <filename>\n");
+		return -1;
+	}
+
+	// Load file
+	FILE *loaded_file;
+	loaded_file = fopen(argv[1], "r");
+
+	// Get file size
+	fseek(loaded_file, 0, SEEK_END);
+	long real_file_size = ftell(loaded_file);
+	fseek(loaded_file, 0, SEEK_SET);
+	if(real_file_size > file_size / 2) file_size += real_file_size;
+
+	// Setup global file buffer
+	buffer = (char*) malloc((file_size + 1) * sizeof(char));
+	fread(buffer, 1, file_size, loaded_file);
 
 	// Set up terminal
 	initscr(); // Init ncurses
@@ -128,6 +145,7 @@ int main(int argc, char** argv) {
 	if(has_colors() == 0) {
 		endwin();
 		printf("Error: Your terminal doesn't seem to support colors!\n");
+		fclose(loaded_file);
 		exit(-1);
 	}
 	start_color();
@@ -163,6 +181,7 @@ int main(int argc, char** argv) {
 	}
 
 	endwin(); // Close ncurses window
+	fclose(loaded_file);
 	return 0;
 }
 
