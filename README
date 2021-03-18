@@ -1,0 +1,14 @@
++-------------------------------+
+|             EDIT              |
+| Inspired by the MS-DOS editor |
++-------------------------------+
+
+Edit is a free (GPL3) text editor inspired by the MS-DOS editor.
+It is currently in early alpha stages - the following planned
+functionality is not yet implemented:
+	- File and Edit menus
+	- Loading files
+	- Saving files
+	- Syntax Highlighting
+	- Cursor movement up and down
+	- Loading files of any size (currently limited to 64 KiB)
