@@ -85,7 +85,6 @@ void redraw() {
 		if(i == current_position) {
 			cursor_x = local_col + 2;
 			cursor_y = local_row + 2;
-			//move(local_row + 2, local_col + 2);
 		}
 		if(buffer[i] == '\n') {
 			local_row ++;
@@ -93,7 +92,7 @@ void redraw() {
 		} else if(buffer[i] == 0) {
 			break;
 		} else {
-			if(local_row >= 0 && local_row <= top_row + LINES - 1 && local_col < COLS - 4) {
+			if(local_row >= 0 && local_row <= top_row + LINES - 2 && local_col < COLS - 4) {
 				mvaddch(local_row + 2, local_col + 2, buffer[i]);
 				local_col ++;
 			}
@@ -105,7 +104,7 @@ void redraw() {
 	refresh(); // Present the user with the updated screen
 }
 
-void add_to_buffer(char ch) {
+void add_to_buffer(char ch) { // Add a character at our current buffer position
 	for(int i = file_size - 1; i > current_position - 1; i--) {
 		buffer[i] = buffer[i - 1];
 	}
@@ -122,7 +121,7 @@ void remove_from_buffer() {
 	current_position --;
 }
 
-void append_newline_to_buffer() {
+void append_newline_to_buffer() { // We can't edit the last item in the file if we don't have either a newline or a space at the end.
 	for(int i = 0; i < file_size; i ++) {
 		if(buffer[i] == 0) {
 			if(buffer[i - 1] == '\n') return;
@@ -132,7 +131,7 @@ void append_newline_to_buffer() {
 	}
 }
 
-int get_real_file_size() {
+int get_real_file_size() { // This stops a bunch of leftover garbage data from being written to the file.
 	for(int i = 0; i < file_size; i++) {
 		if(buffer[i] == 0) return i;
 	}
@@ -140,20 +139,20 @@ int get_real_file_size() {
 }
 
 void save_file() {
-	append_newline_to_buffer();
-	fwrite(buffer, sizeof(char), get_real_file_size(), loaded_file);
+	append_newline_to_buffer(); // We need to do this to stop issues when reloading the file.
+	fwrite(buffer, sizeof(char), get_real_file_size(), loaded_file); // Actually dump the buffer out to the file.
 }
 
-void sigint_handler(int signum) {
-	endwin();
-	save_file();
-	fclose(loaded_file);
-	exit(0);
+void graceful_shutdown(int code) {
+	endwin(); // Shut down ncurses
+	save_file(); // Save the file currently in memory. TODO: Ask the user if they want to save
+	fclose(loaded_file); // Close the file
+	exit(code); // Exit
 }
 
 int main(int argc, char* argv[]) {
 	// Register handler for SIGINT (Ctrl+c)
-	signal(SIGINT, sigint_handler);
+	signal(SIGINT, graceful_shutdown);
 
 	if(argc < 2) {
 		printf("Usage: edit <filename>\n");
@@ -191,12 +190,13 @@ int main(int argc, char* argv[]) {
 	// Set up color
 	if(has_colors() == 0) {
 		enable_colors = 0;
+	} else {
+		start_color();
+		init_pair(1, COLOR_WHITE, COLOR_BLUE); // Normal
+		init_pair(2, COLOR_BLUE, COLOR_WHITE); // Reversed
+		init_pair(3, COLOR_WHITE, COLOR_CYAN); // Selected
+		init_pair(4, COLOR_WHITE, COLOR_RED);  // Error
 	}
-	start_color();
-	init_pair(1, COLOR_WHITE, COLOR_BLUE); // Normal
-	init_pair(2, COLOR_BLUE, COLOR_WHITE); // Reversed
-	init_pair(3, COLOR_WHITE, COLOR_CYAN); // Selected
-	init_pair(4, COLOR_WHITE, COLOR_RED);  // Error
 
 	// Draw the screen
 	redraw();
