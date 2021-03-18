@@ -1,0 +1,4 @@
+#!/bin/bash
+clear
+gcc -Wall -o edit edit.c -lncurses
+./edit
