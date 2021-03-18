@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <curses.h>
+#include <signal.h>
 
 // Text colors
 void text_normal()   {attron(COLOR_PAIR(1));}
@@ -32,6 +33,8 @@ void text_error()    {attron(COLOR_PAIR(3));}
 // Global data
 long file_size = DEFAULT_BUFFER_SIZE;
 char* buffer;
+
+FILE* loaded_file;
 
 int top_row = 0; // Which row is at the top?
 int current_position = 0; // Where are we in the buffer?
@@ -116,15 +119,38 @@ void remove_from_buffer() {
 	current_position --;
 }
 
+void append_newline_to_buffer() {
+	for(int i = 0; i < file_size; i ++) {
+		if(buffer[i] == 0) {
+			buffer[i] = '\n';
+			break;
+		}
+	}
+}
+
+void sigint_handler(int signum) {
+	endwin();
+	append_newline_to_buffer();
+	fwrite(buffer, sizeof(char), file_size, loaded_file);
+	fclose(loaded_file);
+	exit(0);
+}
+
 int main(int argc, char* argv[]) {
+	// Register handler for SIGINT (Ctrl+c)
+	signal(SIGINT, sigint_handler);
+
 	if(argc < 2) {
 		printf("Usage: edit <filename>\n");
 		return -1;
 	}
 
 	// Load file
-	FILE *loaded_file;
 	loaded_file = fopen(argv[1], "r");
+	if(loaded_file == NULL) {
+		printf("Couldn't open file\n");
+		return -1;
+	}
 
 	// Get file size
 	fseek(loaded_file, 0, SEEK_END);
@@ -136,6 +162,10 @@ int main(int argc, char* argv[]) {
 	buffer = (char*) malloc((file_size + 1) * sizeof(char));
 	fread(buffer, 1, file_size, loaded_file);
 
+	// Close file and reopen for writing
+	fclose(loaded_file);
+	loaded_file = fopen(argv[1], "w");
+
 	// Set up terminal
 	initscr(); // Init ncurses
 	cbreak(); // Print one char at a time, don't wait for a whole line
@@ -143,10 +173,7 @@ int main(int argc, char* argv[]) {
 
 	// Set up color
 	if(has_colors() == 0) {
-		endwin();
-		printf("Error: Your terminal doesn't seem to support colors!\n");
-		fclose(loaded_file);
-		exit(-1);
+		sigint_handler(0); // Exit cleanly
 	}
 	start_color();
 	init_pair(1, COLOR_WHITE, COLOR_BLUE); // Normal
@@ -180,8 +207,6 @@ int main(int argc, char* argv[]) {
 		redraw();
 	}
 
-	endwin(); // Close ncurses window
-	fclose(loaded_file);
 	return 0;
 }
 
