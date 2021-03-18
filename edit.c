@@ -21,12 +21,6 @@
 #include <curses.h>
 #include <signal.h>
 
-// Text colors
-void text_normal()   {attron(COLOR_PAIR(1));}
-void text_reversed() {attron(COLOR_PAIR(2));}
-void text_selected() {attron(COLOR_PAIR(3));}
-void text_error()    {attron(COLOR_PAIR(3));}
-
 // Defines
 #define DEFAULT_BUFFER_SIZE 65536
 
@@ -36,12 +30,21 @@ char* buffer;
 
 FILE* loaded_file;
 
-int top_row = 0; // Which row is at the top?
-int current_position = 0; // Where are we in the buffer?
+int top_row = 0;
+int current_position = 0;
 
-int scanline_top = 0;
-int scanline_current = 0;
-int x_current = 0;
+int enable_colors = 1;
+
+// Text colors
+void text_normal()   {if(enable_colors) attron(COLOR_PAIR(1));}
+void text_reversed() {if(enable_colors) attron(COLOR_PAIR(2));}
+void text_selected() {if(enable_colors) attron(COLOR_PAIR(3));}
+void text_error()    {if(enable_colors) attron(COLOR_PAIR(3));}
+
+// Should be unused
+//int scanline_top = 0;
+//int scanline_current = 0;
+//int x_current = 0;
 
 void redraw() {
 	text_normal();
@@ -129,10 +132,21 @@ void append_newline_to_buffer() {
 	}
 }
 
+int get_real_file_size() {
+	for(int i = 0; i < file_size; i++) {
+		if(buffer[i] == 0) return i;
+	}
+	return file_size;
+}
+
+void save_file() {
+	append_newline_to_buffer();
+	fwrite(buffer, sizeof(char), get_real_file_size(), loaded_file);
+}
+
 void sigint_handler(int signum) {
 	endwin();
-	append_newline_to_buffer();
-	fwrite(buffer, sizeof(char), file_size, loaded_file);
+	save_file();
 	fclose(loaded_file);
 	exit(0);
 }
@@ -172,9 +186,11 @@ int main(int argc, char* argv[]) {
 	cbreak(); // Print one char at a time, don't wait for a whole line
 	noecho(); // Don't print entered characters, we'll do that ourselves
 
+	enable_colors = 0;
+
 	// Set up color
 	if(has_colors() == 0) {
-		sigint_handler(0); // Exit cleanly
+		enable_colors = 0;
 	}
 	start_color();
 	init_pair(1, COLOR_WHITE, COLOR_BLUE); // Normal
