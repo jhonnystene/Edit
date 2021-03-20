@@ -1,0 +1,5 @@
+1. Ensure you have the following installed:
+	- gcc
+	- Development libraries for libncurses (usually something like libncurses-devel or libncurses-dev)
+2. Run build.sh
+3. That's it it's really simple
