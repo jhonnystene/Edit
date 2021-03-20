@@ -23,6 +23,7 @@
 
 // Defines
 #define DEFAULT_BUFFER_SIZE 65536
+#define ENABLE_COLORS 0
 
 // Global data
 long file_size = DEFAULT_BUFFER_SIZE;
@@ -33,7 +34,7 @@ FILE* loaded_file;
 int top_row = 0;
 int current_position = 0;
 
-int enable_colors = 1;
+int enable_colors = ENABLE_COLORS;
 
 // Text colors
 void text_normal()   {if(enable_colors) attron(COLOR_PAIR(1));}
@@ -185,8 +186,6 @@ int main(int argc, char* argv[]) {
 	cbreak(); // Print one char at a time, don't wait for a whole line
 	noecho(); // Don't print entered characters, we'll do that ourselves
 
-	enable_colors = 0;
-
 	// Set up color
 	if(has_colors() == 0) {
 		enable_colors = 0;
@@ -209,9 +208,66 @@ int main(int argc, char* argv[]) {
 			if(getch() == 0x5B) { // Arrow keys
 				int arrow = getch();
 				if(arrow == 0x41) { // Up arrow
+					// TODO: Recycle this into home() function
+					for(; current_position > 0; current_position--) {
+						if(buffer[current_position - 1] == '\n') break;
+					}
 
+					if(current_position > 0) {
+						current_position --;
+						for(; current_position > 0; current_position--) {
+							if(buffer[current_position - 1] == '\n') break;
+						}
+					}
+					// TODO: Come back to this
+					/*// TODO: Fix bug where this always goes to the end of the line
+                                        // First, figure out where we are in the line
+                                        int x = 0;
+                                        for(int px = current_position; px >= 0; px--) {
+                                                if(buffer[px] == '\n') break;
+                                                x ++;
+                                        }
+
+                                        // Next, seek backwards to the previous line
+                                        for(; current_position < file_size; current_position--) {
+                                                if(buffer[current_position - 1] == '\n') {
+                                                        break;
+                                                }
+                                        }
+
+                                        // Finally, seek backwards to the closest position to X possible
+                                        for(int px = 0; px <= x; px++) {
+                                                current_position --;
+                                                if(buffer[current_position - 1] == '\n' || current_position == 0) break;
+                                        }*/
 				} else if(arrow == 0x42) { // Down arrow
+					for(; current_position < file_size; current_position ++) {
+						if(buffer[current_position] == '\n') {
+							current_position ++;
+							break;
+						} else if(buffer[current_position + 1] == 0) break;
+					}
+					// TODO: Come back to this
+					/*// TODO: Fix bug where this always goes to the end of the line
+					// First, figure out where we are in the line
+					int x = 0;
+					for(int px = current_position; px >= 0; px--) {
+						x ++;
+						if(buffer[px] == '\n') break;
+					}
 
+					// Next, seek forward to the next line
+					for(; current_position < file_size; current_position++) {
+						if(buffer[current_position - 1] == '\n') {
+							break;
+						}
+					}
+
+					// Finally, seek forward to the closest position to X possible
+					for(int px = 0; px <= x; px++) {
+						current_position ++;
+						if(buffer[current_position + 1] == '\n' || buffer[current_position + 1] == 0) break;
+					}*/
 				} else if(arrow == 0x43) { // Right arrow
 					if(buffer[current_position + 1] != 0) current_position ++;
 				} else if(arrow == 0x44) { // Left arrow

@@ -8,4 +8,19 @@ It is currently in early alpha stages - the following planned
 functionality is not yet implemented:
 	- File and Edit menus
 	- Syntax Highlighting
-	- Cursor movement up and down
+
+=== FEATURES ===
+- Writing on text
+- Saving files
+- Basic cursor movement
+
+=== KNOWN BUGS ===
+- Cursor movement up and down does not preserve column position
+
+=== BUILD SETTINGS ===
+DEFAULT_BUFFER_SIZE is the size the buffer is initialized to. If the file size is already
+greater than half of this value, this value will be added to the file size and used for the
+buffer size.
+
+ENABLE_COLORS is whether or not colors should be enabled. It is recommended to leave this
+at zero for slow terminals and SSH connections.
