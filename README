@@ -5,13 +5,14 @@
 
 Edit is a free (GPL3) text editor. It is currently in early alpha stages - the following planned
 functionality is not yet implemented:
-	- File and Edit menus
 	- Syntax Highlighting
+ - Tabbed Editors
 
 === FEATURES ===
  - Writing on text
  - Saving files
  - Basic cursor movement
+ - Save, Exit, and Exit without saving
 
 === KNOWN BUGS ===
  - Cursor movement up and down does not preserve column position
@@ -23,3 +24,7 @@ buffer size.
 
 ENABLE_COLORS is whether or not colors should be enabled. It is recommended to leave this
 at zero for slow terminals and SSH connections.
+
+=== USAGE INSTRUCTIONS ===
+Type like you would a normal text editor. To use any of the menu items on the top bar, press and release
+Esc, and then press and release the highlighed letter for that item.

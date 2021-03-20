@@ -23,11 +23,12 @@
 
 // Defines
 #define DEFAULT_BUFFER_SIZE 65536
-#define ENABLE_COLORS 0
+#define ENABLE_COLORS 1
 
 // Global data
 long file_size = DEFAULT_BUFFER_SIZE;
 char* buffer;
+const char* file_name;
 
 FILE* loaded_file;
 
@@ -37,10 +38,11 @@ int current_position = 0;
 int enable_colors = ENABLE_COLORS;
 
 // Text colors
-void text_normal()   {if(enable_colors) attron(COLOR_PAIR(1));}
-void text_reversed() {if(enable_colors) attron(COLOR_PAIR(2));}
-void text_selected() {if(enable_colors) attron(COLOR_PAIR(3));}
-void text_error()    {if(enable_colors) attron(COLOR_PAIR(3));}
+void text_normal()        {if(enable_colors) attron(COLOR_PAIR(1));}
+void text_reversed()      {if(enable_colors) attron(COLOR_PAIR(2));}
+void text_selected()      {if(enable_colors) attron(COLOR_PAIR(3));}
+void text_error()         {if(enable_colors) attron(COLOR_PAIR(4));}
+void text_menu_selected() {if(enable_colors) attron(COLOR_PAIR(5));}
 
 // Should be unused
 //int scanline_top = 0;
@@ -57,8 +59,24 @@ void redraw() {
 		mvaddch(0, x, ' ');
 	}
 
-	mvaddstr(0, 1, "File");
-	mvaddstr(0, 6, "Edit");
+	mvaddstr(0, 2, "Save");
+	mvaddstr(0, 8, "Exit");
+	mvaddstr(0, 14, "Exit without saving");
+
+	attron(A_BOLD | A_UNDERLINE);
+	mvaddch(0, 2, 'S');
+	mvaddch(0, 8, 'E');
+	mvaddch(0, 15, 'x');
+	attroff(A_BOLD | A_UNDERLINE);
+
+	/*for(int i = 0; i < 2; i++) {
+		text_reversed();
+		mvaddstr(0, 2 + (6 * i), menu_items[i]);
+		//text_menu_selected();
+		attron(A_BOLD | A_UNDERLINE);
+		mvaddch(0, 2 + (6 * i), menu_items[i][0]);
+		attroff(A_BOLD | A_UNDERLINE);
+	}*/
 
 	// Draw the fancy shit around the text
 	text_normal();
@@ -140,20 +158,24 @@ int get_real_file_size() { // This stops a bunch of leftover garbage data from b
 }
 
 void save_file() {
+	loaded_file = fopen(file_name, "w");
 	append_newline_to_buffer(); // We need to do this to stop issues when reloading the file.
 	fwrite(buffer, sizeof(char), get_real_file_size(), loaded_file); // Actually dump the buffer out to the file.
+	fclose(loaded_file);
 }
 
-void graceful_shutdown(int code) {
+void graceful_shutdown(int code, int save) {
 	endwin(); // Shut down ncurses
-	save_file(); // Save the file currently in memory. TODO: Ask the user if they want to save
-	fclose(loaded_file); // Close the file
+	if(save) save_file(); // Save the file currently in memory. TODO: Ask the user if they want to save
+	//fclose(loaded_file); // Close the file
 	exit(code); // Exit
 }
 
+void do_nothing(int code) {} // Traps CTRL+C
+
 int main(int argc, char* argv[]) {
 	// Register handler for SIGINT (Ctrl+c)
-	signal(SIGINT, graceful_shutdown);
+	signal(SIGINT, do_nothing);
 
 	if(argc < 2) {
 		printf("Usage: edit <filename>\n");
@@ -161,6 +183,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Load file
+	file_name = argv[1];
 	loaded_file = fopen(argv[1], "r");
 	if(loaded_file == NULL) {
 		printf("Couldn't open file\n");
@@ -179,7 +202,7 @@ int main(int argc, char* argv[]) {
 
 	// Close file and reopen for writing
 	fclose(loaded_file);
-	loaded_file = fopen(argv[1], "w");
+	//loaded_file = fopen(argv[1], "w");
 
 	// Set up terminal
 	initscr(); // Init ncurses
@@ -191,10 +214,11 @@ int main(int argc, char* argv[]) {
 		enable_colors = 0;
 	} else {
 		start_color();
-		init_pair(1, COLOR_WHITE, COLOR_BLUE); // Normal
-		init_pair(2, COLOR_BLUE, COLOR_WHITE); // Reversed
-		init_pair(3, COLOR_WHITE, COLOR_CYAN); // Selected
-		init_pair(4, COLOR_WHITE, COLOR_RED);  // Error
+		init_pair(1, COLOR_WHITE, COLOR_BLUE);  // Normal
+		init_pair(2, COLOR_BLUE, COLOR_WHITE);  // Reversed
+		init_pair(3, COLOR_WHITE, COLOR_CYAN);  // Selected
+		init_pair(4, COLOR_WHITE, COLOR_RED);   // Error
+		init_pair(5, COLOR_GREEN, COLOR_WHITE); // Menu Selected
 	}
 
 	// Draw the screen
@@ -205,7 +229,19 @@ int main(int argc, char* argv[]) {
 		if(new_char == KEY_BACKSPACE || new_char == KEY_DC || new_char == 127) remove_from_buffer();
 		else if(new_char == KEY_ENTER) add_to_buffer('\n');
 		else if(new_char == 0x1B) { // Escape sequence
-			if(getch() == 0x5B) { // Arrow keys
+			nodelay(stdscr, TRUE);
+			char code = getch();
+			nodelay(stdscr, FALSE);
+			if(code == ERR) { // ESC code
+				code = getch();
+				if(code == 's') {
+					save_file();
+				} else if(code == 'e') {
+					graceful_shutdown(0, 1);
+				} else if(code == 'x') {
+					graceful_shutdown(0, 0);
+				}
+			} else if(code == 0x5B) { // Arrow keys
 				int arrow = getch();
 				if(arrow == 0x41) { // Up arrow
 					// TODO: Recycle this into home() function
@@ -274,6 +310,8 @@ int main(int argc, char* argv[]) {
 					current_position --;
 					if(current_position < 0) current_position = 0;
 				}
+			} else {
+				// ALT code
 			}
 		}
 		else add_to_buffer(new_char);
