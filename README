@@ -3,19 +3,18 @@
 | Inspired by the MS-DOS editor |
 +-------------------------------+
 
-Edit is a free (GPL3) text editor inspired by the MS-DOS editor.
-It is currently in early alpha stages - the following planned
+Edit is a free (GPL3) text editor. It is currently in early alpha stages - the following planned
 functionality is not yet implemented:
 	- File and Edit menus
 	- Syntax Highlighting
 
 === FEATURES ===
-- Writing on text
-- Saving files
-- Basic cursor movement
+ - Writing on text
+ - Saving files
+ - Basic cursor movement
 
 === KNOWN BUGS ===
-- Cursor movement up and down does not preserve column position
+ - Cursor movement up and down does not preserve column position
 
 === BUILD SETTINGS ===
 DEFAULT_BUFFER_SIZE is the size the buffer is initialized to. If the file size is already
